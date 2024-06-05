@@ -1,7 +1,7 @@
 use krabmaga::engine::state::State;
 use krabmaga::{engine::agent::Agent, rand::prelude::SliceRandom};
 
-use crate::model::state::UrbanNetworkState;
+use crate::UrbanNetworkState;
 
 #[derive(Clone, Copy)]
 pub struct AgentLoc {

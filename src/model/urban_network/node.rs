@@ -8,12 +8,12 @@ use krabmaga::engine::{fields::field_2d::Location2D, location::Real2D};
 
 #[derive(Copy, Clone, Eq, Default)]
 pub struct StreetNode {
-    pub id: u32,
+    pub id: i64,
     pub loc: Real2D,
 }
 
 impl StreetNode {
-    pub fn new(id: u32, loc: Real2D) -> Self {
+    pub fn new(id: i64, loc: Real2D) -> Self {
         StreetNode { id, loc }
     }
 }

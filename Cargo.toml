@@ -1,15 +1,8 @@
 [package]
-name = "virusnetwork"
-version = "0.3.0"
+name = "flaneur-abm"
+version = "0.0.1"
 authors = [
-    "Carmine Spagnuolo <spagnuolocarmine@gmail.com>", 
-    "Alessia Antelmi <aantelmi@unisa.it>", 
-    "Matteo D'Auria <matdauria@unisa.it>", 
-    "Daniele De Vinco <danieledevinco1996@gmail.com", 
-    "Francesco Foglia <frafonia@gmail.com>", 
-    "Pasquale Caramante <pasqcaramante@gmail.com>", 
-    "Luca Postiglione <lucapostiglione10@gmail.com>", 
-    "Giuseppe D'Ambrosio <giuseppe.dambrosio14@gmail.com>"
+    "Kyle Slugg-Urbino <kyle.slugg@gmail.com>"
 ]
 edition = "2021"
 license = "MIT"
@@ -18,6 +11,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+geo = "0.28.0"
 krabmaga = "0.5.*"
 osmpbf = "0.3.3"
 

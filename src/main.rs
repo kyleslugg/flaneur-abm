@@ -3,7 +3,7 @@ extern crate krabmaga;
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
 
-use model::state::UrbanNetworkState;
+use crate::model::state::network_state::UrbanNetworkState;
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 use {
     crate::visualization::vis_state::VisState, krabmaga::bevy::prelude::Color,
@@ -29,10 +29,11 @@ fn main() {
     let dim: (f32, f32) = (100., 100.);
     let num_nodes = 3_000;
     let num_agents = 5_000;
-    let urban_network =
-        UrbanNetworkState::new(dim, num_agents, num_nodes, DISCRETIZATION, TOROIDAL);
+    // let urban_network =
+    //     UrbanNetworkState::new(dim, num_agents, num_nodes, DISCRETIZATION, TOROIDAL);
+    UrbanNetworkState::load_network();
 
-    simulate!(urban_network, step, 10);
+    //simulate!(urban_network, step, 10);
 }
 
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
