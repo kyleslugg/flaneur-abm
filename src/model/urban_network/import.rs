@@ -1,17 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-    process::Output,
-    slice::Iter,
-};
+use std::{collections::HashSet, hash::Hash};
 
-use geo::{bounding_rect, BoundingRect, HaversineDistance, Point};
-use krabmaga::{
-    engine::{
-        fields::network::{Edge, EdgeOptions},
-        location::Real2D,
-    },
-    Read, Seek,
+use geo::{HaversineDistance, Point};
+use krabmaga::engine::{
+    fields::network::{Edge, EdgeOptions},
+    location::Real2D,
 };
 use osmpbf::{BlobReader, Element, HeaderBBox, IndexedReader};
 
@@ -27,13 +19,13 @@ impl OsmNodeInfo {
     const NANO_DIVISOR: f64 = 1.0e9;
 }
 
-impl Into<StreetNode> for OsmNodeInfo {
-    fn into(self) -> StreetNode {
+impl From<OsmNodeInfo> for StreetNode {
+    fn from(val: OsmNodeInfo) -> Self {
         StreetNode::new(
-            self.id,
+            val.id,
             Real2D {
-                x: (self.nano_lon as f64 / OsmNodeInfo::NANO_DIVISOR) as f32,
-                y: (self.nano_lat as f64 / OsmNodeInfo::NANO_DIVISOR) as f32,
+                x: (val.nano_lon as f64 / OsmNodeInfo::NANO_DIVISOR) as f32,
+                y: (val.nano_lat as f64 / OsmNodeInfo::NANO_DIVISOR) as f32,
             },
         )
     }
@@ -100,7 +92,7 @@ pub fn read_osm(filepath: &str) -> Result<OsmNetworkComponents, osmpbf::Error> {
     let mut bbox: Option<HeaderBBox> = None;
 
     if let Ok(mut reader) = BlobReader::from_path(filepath) {
-        while let Some(blob_res) = reader.next() {
+        for blob_res in reader {
             if let Ok(hblock) = blob_res.and_then(|blob| blob.to_headerblock()) {
                 bbox = hblock.bbox()
             }
@@ -178,6 +170,6 @@ pub fn read_osm(filepath: &str) -> Result<OsmNetworkComponents, osmpbf::Error> {
             }
         }
 
-        Err(e) => return Err(e),
+        Err(e) => Err(e),
     }
 }

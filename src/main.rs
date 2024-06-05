@@ -31,7 +31,14 @@ fn main() {
     let num_agents = 5_000;
     // let urban_network =
     //     UrbanNetworkState::new(dim, num_agents, num_nodes, DISCRETIZATION, TOROIDAL);
-    UrbanNetworkState::load_network();
+    if let Ok(urban_network) = UrbanNetworkState::from_osm_file(
+        "data/vermont-latest.osm.pbf",
+        num_agents,
+        DISCRETIZATION,
+        TOROIDAL,
+    ) {
+        simulate!(urban_network, step, 10);
+    };
 
     //simulate!(urban_network, step, 10);
 }

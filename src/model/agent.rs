@@ -1,5 +1,6 @@
+use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
-use krabmaga::{engine::agent::Agent, rand::prelude::SliceRandom};
+use krabmaga::rand::rngs::ThreadRng;
 
 use crate::UrbanNetworkState;
 
@@ -51,7 +52,7 @@ impl PedAgent {
 
     pub fn update_network_loc(&mut self, state: &mut UrbanNetworkState) {
         // Get random number gen from state
-        let rng = &mut state.rng;
+        let rng = ThreadRng::default();
 
         // Placeholder for next location
         let next_loc = Some(AgentLoc::default());

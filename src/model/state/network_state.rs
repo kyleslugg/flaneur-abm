@@ -1,9 +1,9 @@
 use crate::model::agent::{AgentLoc, PedAgent};
-use crate::model::urban_network::{edge::StreetEdgeLabel, node::StreetNode};
+use crate::model::urban_network::{node::StreetNode};
 use crate::model::urban_network::{street_network_from_osm, StreetNetwork, StreetNetworkSpec};
 use crate::INIT_EDGES;
-use krabmaga::engine::fields::network::{Edge, EdgeOptions, Network};
-use krabmaga::engine::fields::{field::Field, field_2d::Field2D};
+use krabmaga::engine::fields::network::{Network};
+use krabmaga::engine::fields::{field::Field};
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::schedule::Schedule;
 use krabmaga::engine::state::State;
@@ -11,15 +11,11 @@ use krabmaga::rand;
 use krabmaga::rand::{
     distributions::Uniform,
     prelude::SliceRandom,
-    rngs::{StdRng, ThreadRng},
+    rngs::{ThreadRng},
     Rng,
 };
 use krabmaga::Distribution;
-use osmpbf::IndexedReader;
-use rand::SeedableRng;
 use std::any::Any;
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
 
 pub enum UrbanNetworkStateError {
     OSMLoadingError,
@@ -75,7 +71,7 @@ impl UrbanNetworkState {
                 },
             );
             //self.field1.set_object_location(node, node.loc);
-            node_set.push(node.clone());
+            node_set.push(node);
             state.network.add_node(node);
             //schedule.schedule_repeating(Box::new(PedAgent), 0.0, 0);
         }
@@ -146,15 +142,9 @@ impl State for UrbanNetworkState {
                 .expect("Network should have non-empty edge list.");
 
             let starting_edge_length = starting_edge
-                .label
-                .and_then(|label| Some(label.len))
-                .expect(
-                    format!(
-                    "Error occurred on edge ({} - {}): Edges must be defined with length value in label",
-                    starting_edge.u, starting_edge.v
-                )
-                    .as_str(),
-                );
+                .label.map(|label| label.len)
+                .unwrap_or_else(|| panic!("Error occurred on edge ({} - {}): Edges must be defined with length value in label",
+                    starting_edge.u, starting_edge.v));
 
             let uniform_range = Uniform::new_inclusive(0.0, 1.0);
             let starting_loc = AgentLoc::new(

@@ -24,7 +24,7 @@ pub fn street_network_from_osm(filepath: &str) -> Result<StreetNetworkSpec, Stre
             // Generate edges from osm_spec's ways
             let edges: Vec<Edge<StreetEdgeLabel>> = osm_spec.ways.iter().map(|e| {
                                                             e.as_edges()}).reduce(|acc, el|{
-                                                            acc.into_iter().chain(el.into_iter()).collect()
+                                                            acc.into_iter().chain(el).collect()
                                                         }).expect("If you've reached this point, your list of OSM segments is improperly formatted");
 
             // Instantiate network
@@ -64,6 +64,6 @@ pub fn street_network_from_osm(filepath: &str) -> Result<StreetNetworkSpec, Stre
             Ok(StreetNetworkSpec { network, dim })
         }
 
-        Err(e) => return Err(StreetNetworkError::Parse(e)),
+        Err(e) => Err(StreetNetworkError::Parse(e)),
     }
 }
