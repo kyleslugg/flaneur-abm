@@ -1,6 +1,11 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+    path::Path,
+};
 
 use geo::{HaversineDistance, Point};
+use indicatif::ProgressBar;
 use krabmaga::engine::{
     fields::network::{Edge, EdgeOptions},
     location::Real2D,
@@ -9,7 +14,7 @@ use osmpbf::{BlobReader, Element, HeaderBBox, IndexedReader};
 
 use crate::model::urban_network::{edge::StreetEdgeLabel, node::StreetNode};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct OsmNodeInfo {
     id: i64,
     nano_lat: i64,
@@ -31,14 +36,14 @@ impl From<OsmNodeInfo> for StreetNode {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OsmSegmentInfo {
     u_id: i64,
     v_id: i64,
     length: f64,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OsmWayInfo {
     id: i64,
     node_ids: Vec<i64>,
@@ -88,10 +93,10 @@ impl OsmNetworkComponents {
     }
 }
 
-pub fn read_osm(filepath: &str) -> Result<OsmNetworkComponents, osmpbf::Error> {
+pub fn read_osm(filepath: &Path) -> Result<OsmNetworkComponents, osmpbf::Error> {
     let mut bbox: Option<HeaderBBox> = None;
 
-    if let Ok(mut reader) = BlobReader::from_path(filepath) {
+    if let Ok(reader) = BlobReader::from_path(filepath) {
         for blob_res in reader {
             if let Ok(hblock) = blob_res.and_then(|blob| blob.to_headerblock()) {
                 bbox = hblock.bbox()
@@ -102,6 +107,7 @@ pub fn read_osm(filepath: &str) -> Result<OsmNetworkComponents, osmpbf::Error> {
     match IndexedReader::from_path(filepath) {
         Ok(mut reader) => {
             let mut components = OsmNetworkComponents::new();
+            let mut local_node_index: HashMap<i64, OsmNodeInfo> = HashMap::new();
 
             let res = reader.read_ways_and_deps(
                 |_| true,
@@ -112,6 +118,7 @@ pub fn read_osm(filepath: &str) -> Result<OsmNetworkComponents, osmpbf::Error> {
                             nano_lat: n.nano_lat(),
                             nano_lon: n.nano_lon(),
                         };
+                        local_node_index.insert(n.id(), new_node.clone());
                         components.nodes.insert(new_node);
                     }
                     Element::DenseNode(n) => {
@@ -120,46 +127,62 @@ pub fn read_osm(filepath: &str) -> Result<OsmNetworkComponents, osmpbf::Error> {
                             nano_lat: n.nano_lat(),
                             nano_lon: n.nano_lon(),
                         };
+                        local_node_index.insert(n.id(), new_node.clone());
                         components.nodes.insert(new_node);
                     }
                     Element::Way(w) => {
                         // Get segment info
                         let mut segments = Vec::<OsmSegmentInfo>::new();
-                        let node_locs = w.node_locations();
-                        match w.node_locations().peekable().peek() {
+                        let node_ids = w.refs();
+                        match node_ids.clone().next() {
                             None => {
-                                panic!(
-                            "Unable to load OSM file: HeaderBlock does not specify node locations"
-                        );
+                                print!("Unable to load edge {}: no node references found", w.id());
                             }
                             Some(_) => {
-                                let full_nodes = w.refs().zip(node_locs);
-                                full_nodes.clone().zip(full_nodes.skip(1)).for_each(
-                                    |((u, uloc), (v, vloc))| {
-                                        let segment_dist =
-                                            Point::new(uloc.lon(), uloc.lat()).haversine_distance(
-                                                &Point::new(vloc.lon(), vloc.lat()),
-                                            );
-                                        segments.push(OsmSegmentInfo {
-                                            u_id: u,
-                                            v_id: v,
-                                            length: segment_dist,
-                                        });
-                                    },
-                                )
+                                let node_pairs = w.refs().zip(node_ids.clone().skip(1));
+                                node_pairs.for_each(|(u, v)| {
+                                    segments.push(OsmSegmentInfo {
+                                        u_id: u,
+                                        v_id: v,
+                                        length: -1.0,
+                                    });
+                                });
+                                components.ways.push(OsmWayInfo {
+                                    id: w.id(),
+                                    node_ids: node_ids.collect(),
+                                    segments,
+                                })
                             }
                         }
-
-                        let new_way = OsmWayInfo {
-                            id: w.id(),
-                            node_ids: w.refs().collect(),
-                            segments,
-                        };
-                        components.ways.push(new_way);
                     }
                     Element::Relation(_) => {}
                 },
             );
+
+            // Wrap processing step in progress bar
+            println!("{}", "Processing way segment lengths...");
+            let pb = ProgressBar::new(components.ways.len() as u64);
+
+            pb.wrap_iter(components.ways.iter_mut()).for_each(|edge| {
+                edge.segments.iter_mut().for_each(|segment| {
+                    if let Some(u) = local_node_index.get(&segment.u_id) {
+                        if let Some(v) = local_node_index.get(&segment.v_id) {
+                            let segment_dist = Point::new(
+                                (u.nano_lon as f64 / 1e9_f64),
+                                (u.nano_lat as f64 / 1e9_f64),
+                            )
+                            .haversine_distance(&Point::new(
+                                (v.nano_lon as f64 / 1e9_f64),
+                                (v.nano_lat as f64 / 1e9_f64),
+                            ));
+
+                            segment.length = segment_dist;
+                        } else {
+                            print!("Failed to calculate distance on segment {} - {}: node {} not found.", segment.u_id, segment.v_id, segment.v_id)
+                        }
+                    }
+                });
+            });
 
             match res {
                 Ok(_) => {

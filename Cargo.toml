@@ -12,8 +12,12 @@ readme = "README.md"
 
 [dependencies]
 geo = "0.28.0"
+indicatif = "0.17.8"
 krabmaga = "0.5.*"
 osmpbf = "0.3.3"
+serde = { version = "1.0.203", features = ["derive", "serde_derive"] }
+serde_json = "1.0.117"
+serde_with = { version = "3.8.1", features = ["hashbrown_0_14", "indexmap"] }
 
 [features]
 #visualization = ["krabmaga/visualization"]

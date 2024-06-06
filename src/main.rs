@@ -24,22 +24,33 @@ pub static RECOVERY_CHANCE: f64 = 0.30;
 pub static GAIN_RESISTANCE_CHANCE: f64 = 0.20;
 
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
-fn main() {
+fn main() -> Result<(), std::io::Error> {
+    use std::{
+        env,
+        ffi::OsStr,
+        path::{self, Path},
+    };
+
     let step: u64 = 110;
     let dim: (f32, f32) = (100., 100.);
     let num_nodes = 3_000;
     let num_agents = 5_000;
     // let urban_network =
     //     UrbanNetworkState::new(dim, num_agents, num_nodes, DISCRETIZATION, TOROIDAL);
-    if let Ok(urban_network) = UrbanNetworkState::from_osm_file(
-        "data/vermont-latest.osm.pbf",
-        num_agents,
-        DISCRETIZATION,
-        TOROIDAL,
-    ) {
-        simulate!(urban_network, step, 10);
-    };
+    let mut osm_file_path = env::current_dir()?;
+    osm_file_path.push("src/data/vermont-latest.osm.pbf");
+    print!("{:?}", &osm_file_path);
+    match UrbanNetworkState::from_osm_file(&osm_file_path, num_agents, DISCRETIZATION, TOROIDAL) {
+        Ok(urban_network) => {
+            print!("{:?}", &urban_network.network.0.nodes2id);
+            simulate!(urban_network, step, 10);
+        }
 
+        Err(e) => {
+            print!("{:?}", e);
+        }
+    }
+    Ok(())
     //simulate!(urban_network, step, 10);
 }
 

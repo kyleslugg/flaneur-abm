@@ -4,7 +4,7 @@ use krabmaga::rand::rngs::ThreadRng;
 
 use crate::UrbanNetworkState;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct AgentLoc {
     from_node: u32,
     to_node: u32,
@@ -32,7 +32,7 @@ impl Default for AgentLoc {
 //     loc: AgentLoc,
 // }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PedAgent {
     pub id: u32,
     pub loc: AgentLoc,

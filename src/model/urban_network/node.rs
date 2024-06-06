@@ -5,7 +5,7 @@ use std::{
 
 use krabmaga::engine::{fields::field_2d::Location2D, location::Real2D};
 
-#[derive(Copy, Clone, Eq, Default)]
+#[derive(Copy, Clone, Eq, Default, Debug)]
 pub struct StreetNode {
     pub id: i64,
     pub loc: Real2D,

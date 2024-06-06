@@ -1,28 +1,55 @@
+use std::path::Path;
+
+use indicatif::ProgressBar;
 use krabmaga::engine::fields::network::{Edge, EdgeOptions, Network};
 use osmpbf::HeaderBBox;
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
 
 use super::import::read_osm;
 
 use super::{StreetEdgeLabel, StreetNode};
 
-pub type StreetNetwork = Network<StreetNode, StreetEdgeLabel>;
+pub struct StreetNetwork(pub Network<StreetNode, StreetEdgeLabel>);
+
+// impl Serialize for StreetNetwork {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer,
+//     {
+//         serializer.serialize_newtype_struct("StreetNetwork", {
+//             let mut state =
+//                 serializer.serialize_struct("Network<StreetNode, StreetEdgeLabel>", 6)?;
+//             state.serialize_field("edges",{&self.0.edges});
+//             &"placeholder"
+//         })
+//     }
+// }
 pub struct StreetNetworkSpec {
     pub network: StreetNetwork,
     pub dim: (f32, f32),
 }
 
+#[derive(Debug)]
 pub enum StreetNetworkError {
     Parse(osmpbf::Error),
 }
 
-pub fn street_network_from_osm(filepath: &str) -> Result<StreetNetworkSpec, StreetNetworkError> {
+pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, StreetNetworkError> {
     match read_osm(filepath) {
         Ok(osm_spec) => {
             // Generate StreetNodes from osm_spec's nodes
-            let nodes: Vec<StreetNode> = osm_spec.nodes.iter().map(|n| (*n).into()).collect();
+            println!("{}", "Processing OSM nodes as KBM nodes...");
+            let pb = ProgressBar::new(osm_spec.nodes.len() as u64);
+            let nodes: Vec<StreetNode> = pb
+                .wrap_iter(osm_spec.nodes.iter())
+                .map(|n| (*n).into())
+                .collect();
 
             // Generate edges from osm_spec's ways
-            let edges: Vec<Edge<StreetEdgeLabel>> = osm_spec.ways.iter().map(|e| {
+            println!("{}", "Processing OSM ways as KBM edges...");
+            let pb = ProgressBar::new(osm_spec.ways.len() as u64);
+            let edges: Vec<Edge<StreetEdgeLabel>> = pb.wrap_iter(osm_spec.ways.iter()).map(|e| {
                                                             e.as_edges()}).reduce(|acc, el|{
                                                             acc.into_iter().chain(el).collect()
                                                         }).expect("If you've reached this point, your list of OSM segments is improperly formatted");
@@ -61,7 +88,10 @@ pub fn street_network_from_osm(filepath: &str) -> Result<StreetNetworkSpec, Stre
                 dim = ((right - left) as f32, (top - bottom) as f32);
             };
 
-            Ok(StreetNetworkSpec { network, dim })
+            Ok(StreetNetworkSpec {
+                network: StreetNetwork(network),
+                dim,
+            })
         }
 
         Err(e) => Err(StreetNetworkError::Parse(e)),
