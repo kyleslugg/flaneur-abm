@@ -1,4 +1,5 @@
-use krabmaga::hashbrown::{self, HashMap};
+use krabmaga::HashMap;
+use krabmaga::__Deref;
 use serde_with::serde_as;
 use std::cell::RefCell;
 use std::fmt::Display;
@@ -9,6 +10,8 @@ use indicatif::ProgressBar;
 use krabmaga::engine::fields::network::{Edge, EdgeOptions, Network};
 use osmpbf::HeaderBBox;
 use serde::{Deserialize, Serialize};
+
+use crate::model::urban_network::import::EdgeSpec;
 
 use super::import::read_osm;
 
@@ -74,6 +77,9 @@ pub enum StreetNetworkError {
 pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, StreetNetworkError> {
     match read_osm(filepath) {
         Ok(osm_spec) => {
+            // Instantiate network
+            let network = Network::<StreetNode, StreetEdgeLabel>::new(true);
+
             // Generate StreetNodes from osm_spec's nodes
             println!("{}", "Processing OSM nodes as KBM nodes...");
             let pb = ProgressBar::new(osm_spec.nodes.len() as u64);
@@ -82,36 +88,60 @@ pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, Str
                 .map(|n| (*n).into())
                 .collect();
 
-            // Generate edges from osm_spec's ways
-            println!("{}", "Processing OSM ways as KBM edges...");
-            let pb = ProgressBar::new(osm_spec.ways.len() as u64);
-            let edges: Vec<Edge<StreetEdgeLabel>> = pb.wrap_iter(osm_spec.ways.iter()).map(|e| {
-                                                            e.as_edges()}).reduce(|acc, el|{
-                                                            acc.into_iter().chain(el).collect()
-                                                        }).expect("If you've reached this point, your list of OSM segments is improperly formatted");
+            // Add nodes to network (for subsequent reference during edge creation)
+            println!("{}", "Adding nodes to network...");
+            let pb = ProgressBar::new(nodes.len() as u64);
 
-            // Instantiate network
-            let network = Network::<StreetNode, StreetEdgeLabel>::new(true);
-            nodes.into_iter().for_each(|n| {
+            pb.wrap_iter(nodes.into_iter()).for_each(|n| {
                 network.add_node(n);
             });
 
-            edges.into_iter().for_each(|e| {
-                print!("{:?}", &e);
-                let u = network
-                    .get_object(e.u)
-                    .expect("Node not present in previously loaded set");
-                let v = network
-                    .get_object(e.v)
-                    .expect("Node not present in previously loaded set");
-                network.add_edge(
-                    u,
-                    v,
-                    EdgeOptions::WeightedLabeled(
-                        e.label.expect("Missing edge label"),
-                        e.weight.expect("Missing edge weight"),
-                    ),
-                );
+            // Create map of OSM IDs to Node IDs
+            // let osm_id_node_map = network
+            //     .nodes2id
+            //     .iter()
+            //     .map(|item| {
+            //         item.borrow()
+            //             .iter()
+            //             .map(|(node, id)| (node.osm_id, *id))
+            //             .collect::<HashMap<i64, u32>>()
+            //     })
+            //     .reduce(|acc, item| {
+            //         let mut new = acc;
+            //         new.extend(item.into_iter());
+            //         new
+            //     })
+            //     .expect("Network nodes list is empty -- nodes should have already been loaded.");
+
+            let osm_id_node_map = network
+                .nodes2id
+                .iter()
+                .map(|item| {
+                    item.borrow()
+                        .iter()
+                        .map(|(node, _)| (node.osm_id, *node))
+                        .collect::<HashMap<i64, StreetNode>>()
+                })
+                .reduce(|acc, item| {
+                    acc.into_iter()
+                        .chain(item)
+                        .collect::<HashMap<i64, StreetNode>>()
+                })
+                .expect("Network nodes list is empty -- nodes should have already been loaded.");
+
+            // Generate edges from osm_spec's ways
+            println!("{}", "Processing OSM ways as KBM edges...");
+            let pb = ProgressBar::new(osm_spec.ways.len() as u64);
+            let edges: Vec<EdgeSpec<StreetEdgeLabel>> = pb.wrap_iter(osm_spec.ways.iter()).map(|e| {
+                                                            e.as_edge_specs(&osm_id_node_map)}).reduce(|acc, el|{
+                                                            acc.into_iter().chain(el).collect()
+                                                        }).expect("If you've reached this point, your list of OSM segments is improperly formatted");
+
+            // Add edges to network
+            println!("{}", "Adding edges to network...");
+            let pb = ProgressBar::new(edges.len() as u64);
+            pb.wrap_iter(edges.into_iter()).for_each(|e| {
+                network.add_edge(e.u, e.v, e.options);
             });
 
             // Calculate dimensions from bounding box

@@ -14,14 +14,14 @@ pub struct Real2DDef {
 }
 #[derive(Copy, Clone, Eq, Default, Debug, Serialize, Deserialize)]
 pub struct StreetNode {
-    pub id: i64,
+    pub osm_id: i64,
     #[serde(with = "Real2DDef")]
     pub loc: Real2D,
 }
 
 impl StreetNode {
     pub fn new(id: i64, loc: Real2D) -> Self {
-        StreetNode { id, loc }
+        StreetNode { osm_id: id, loc }
     }
 }
 
@@ -30,13 +30,13 @@ impl Hash for StreetNode {
     where
         H: Hasher,
     {
-        self.id.hash(state);
+        self.osm_id.hash(state);
     }
 }
 
 impl PartialEq for StreetNode {
     fn eq(&self, other: &StreetNode) -> bool {
-        self.id == other.id
+        self.osm_id == other.osm_id
     }
 }
 
@@ -52,7 +52,7 @@ impl Location2D<Real2D> for StreetNode {
 
 impl fmt::Display for StreetNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} loc {}", self.id, self.loc)
+        write!(f, "{} loc {}", self.osm_id, self.loc)
     }
 }
 

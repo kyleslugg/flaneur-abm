@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Display,
     hash::Hash,
     path::Path,
 };
@@ -51,9 +52,18 @@ pub struct OsmWayInfo {
     segments: Vec<OsmSegmentInfo>,
 }
 
+pub struct EdgeSpec<L: Clone + Hash + Display> {
+    pub u: StreetNode,
+    pub v: StreetNode,
+    pub options: EdgeOptions<L>,
+}
+
 impl OsmWayInfo {
-    pub fn as_edges(&self) -> Vec<Edge<StreetEdgeLabel>> {
-        let edges: Vec<Edge<StreetEdgeLabel>> = self
+    pub fn as_edge_specs(
+        &self,
+        osm_id_node_map: &HashMap<i64, StreetNode>,
+    ) -> Vec<EdgeSpec<StreetEdgeLabel>> {
+        let edges: Vec<EdgeSpec<StreetEdgeLabel>> = self
             .segments
             .iter()
             .map(|seg| {
@@ -64,9 +74,19 @@ impl OsmWayInfo {
                     },
                     seg.length as f32,
                 );
-                let u_node = seg.u_id as u32;
-                let v_node = seg.v_id as u32;
-                Edge::new(u_node, v_node, edge_options)
+                let u_node = *osm_id_node_map.get(&seg.u_id).expect(&format!(
+                    "No corresponding network node ID found for OSM ID {}",
+                    &seg.u_id
+                ));
+                let v_node = *osm_id_node_map.get(&seg.v_id).expect(&format!(
+                    "No corresponding network node ID found for OSM ID {}",
+                    &seg.u_id
+                ));
+                EdgeSpec {
+                    u: u_node,
+                    v: v_node,
+                    options: edge_options,
+                }
             })
             .collect();
         edges

@@ -42,7 +42,6 @@ fn main() -> Result<(), std::io::Error> {
     print!("{:?}", &osm_file_path);
     match UrbanNetworkState::from_osm_file(&osm_file_path, num_agents, DISCRETIZATION, TOROIDAL) {
         Ok(urban_network) => {
-            print!("{:?}", &urban_network.network.0.nodes2id);
             simulate!(urban_network, step, 10);
         }
 
