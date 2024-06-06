@@ -95,7 +95,9 @@ pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, Str
             nodes.into_iter().for_each(|n| {
                 network.add_node(n);
             });
+
             edges.into_iter().for_each(|e| {
+                print!("{:?}", &e);
                 let u = network
                     .get_object(e.u)
                     .expect("Node not present in previously loaded set");

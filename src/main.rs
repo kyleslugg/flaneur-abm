@@ -38,7 +38,7 @@ fn main() -> Result<(), std::io::Error> {
     // let urban_network =
     //     UrbanNetworkState::new(dim, num_agents, num_nodes, DISCRETIZATION, TOROIDAL);
     let mut osm_file_path = env::current_dir()?;
-    osm_file_path.push("src/data/vermont-latest.osm.pbf");
+    osm_file_path.push("src/data/middlebury.osm.pbf");
     print!("{:?}", &osm_file_path);
     match UrbanNetworkState::from_osm_file(&osm_file_path, num_agents, DISCRETIZATION, TOROIDAL) {
         Ok(urban_network) => {
