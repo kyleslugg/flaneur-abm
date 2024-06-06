@@ -4,10 +4,18 @@ use std::{
 };
 
 use krabmaga::engine::{fields::field_2d::Location2D, location::Real2D};
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Eq, Default, Debug)]
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "krabmaga::engine::location::Real2D")]
+pub struct Real2DDef {
+    pub x: f32,
+    pub y: f32,
+}
+#[derive(Copy, Clone, Eq, Default, Debug, Serialize, Deserialize)]
 pub struct StreetNode {
     pub id: i64,
+    #[serde(with = "Real2DDef")]
     pub loc: Real2D,
 }
 

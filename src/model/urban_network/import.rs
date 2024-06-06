@@ -11,10 +11,11 @@ use krabmaga::engine::{
     location::Real2D,
 };
 use osmpbf::{BlobReader, Element, HeaderBBox, IndexedReader};
+use serde::{Deserialize, Serialize};
 
 use crate::model::urban_network::{edge::StreetEdgeLabel, node::StreetNode};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct OsmNodeInfo {
     id: i64,
     nano_lat: i64,
@@ -36,14 +37,14 @@ impl From<OsmNodeInfo> for StreetNode {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OsmSegmentInfo {
     u_id: i64,
     v_id: i64,
     length: f64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OsmWayInfo {
     id: i64,
     node_ids: Vec<i64>,
@@ -72,15 +73,23 @@ impl OsmWayInfo {
     }
 }
 
-pub struct Coord {
-    x: f64,
-    y: f64,
+//This lets us derive Serialize for a remote struct by defining an identical local one.
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "osmpbf::block::HeaderBBox")]
+pub struct HeaderBBoxDef {
+    left: f64,
+    right: f64,
+    top: f64,
+    bottom: f64,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct OsmNetworkComponents {
     pub nodes: HashSet<OsmNodeInfo>,
     pub ways: Vec<OsmWayInfo>,
-    pub bounding_box: Option<HeaderBBox>,
+
+    #[serde(with = "HeaderBBoxDef")]
+    pub bounding_box: HeaderBBox,
 }
 
 impl OsmNetworkComponents {
@@ -88,18 +97,23 @@ impl OsmNetworkComponents {
         OsmNetworkComponents {
             nodes: HashSet::new(),
             ways: Vec::new(),
-            bounding_box: None,
+            bounding_box: HeaderBBox {
+                left: 0.0,
+                right: 0.0,
+                top: 0.0,
+                bottom: 0.0,
+            },
         }
     }
 }
 
 pub fn read_osm(filepath: &Path) -> Result<OsmNetworkComponents, osmpbf::Error> {
-    let mut bbox: Option<HeaderBBox> = None;
+    let mut bbox: HeaderBBox;
 
     if let Ok(reader) = BlobReader::from_path(filepath) {
         for blob_res in reader {
             if let Ok(hblock) = blob_res.and_then(|blob| blob.to_headerblock()) {
-                bbox = hblock.bbox()
+                bbox = hblock.bbox().expect("File should contain bounding box")
             }
         }
     };
@@ -184,13 +198,7 @@ pub fn read_osm(filepath: &Path) -> Result<OsmNetworkComponents, osmpbf::Error> 
                 });
             });
 
-            match res {
-                Ok(_) => {
-                    components.bounding_box = bbox;
-                    Ok(components)
-                }
-                Err(e) => Err(e),
-            }
+            Ok(components)
         }
 
         Err(e) => Err(e),

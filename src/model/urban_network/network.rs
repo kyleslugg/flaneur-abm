@@ -1,16 +1,46 @@
+use krabmaga::hashbrown::{self, HashMap};
+use serde_with::serde_as;
+use std::cell::RefCell;
+use std::fmt::Display;
+use std::hash::Hash;
 use std::path::Path;
 
 use indicatif::ProgressBar;
 use krabmaga::engine::fields::network::{Edge, EdgeOptions, Network};
 use osmpbf::HeaderBBox;
-use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize};
 
 use super::import::read_osm;
 
 use super::{StreetEdgeLabel, StreetNode};
 
-pub struct StreetNetwork(pub Network<StreetNode, StreetEdgeLabel>);
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "krabmaga::engine::fields::network::Edge")]
+struct EdgeDef<L: Clone + Hash + Display> {
+    pub u: u32,
+    pub v: u32,
+    pub label: Option<L>,
+    pub weight: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde_as]
+#[serde(remote = "krabmaga::engine::fields::network::Network")]
+struct NetworkDef<O: Hash + Eq + Clone + Display, L: Clone + Hash + Display> {
+    #[serde_as(as = "hashbrown::HashMap<DisplayFromStr, Vec<Edge<L>>>")]
+    pub edges: Vec<RefCell<HashMap<u32, Vec<Edge<L>>>>>,
+    pub read: usize,
+    pub write: usize,
+    #[serde(with = "krabmaga::hashbrown::HashMap")]
+    pub nodes2id: Vec<RefCell<HashMap<O, u32>>>,
+    #[serde(with = "krabmaga::hashbrown::HashMap")]
+    pub id2nodes: Vec<RefCell<HashMap<u32, O>>>,
+    pub direct: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+
+pub struct StreetNetwork(#[serde(with = "NetworkDef")] pub Network<StreetNode, StreetEdgeLabel>);
 
 // impl Serialize for StreetNetwork {
 //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -77,16 +107,14 @@ pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, Str
             });
 
             // Calculate dimensions from bounding box
-            let mut dim: (f32, f32) = (0.0, 0.0);
-            if let Some(bbox) = osm_spec.bounding_box {
-                let HeaderBBox {
-                    left,
-                    right,
-                    top,
-                    bottom,
-                } = bbox;
-                dim = ((right - left) as f32, (top - bottom) as f32);
-            };
+            let HeaderBBox {
+                left,
+                right,
+                top,
+                bottom,
+            } = osm_spec.bounding_box;
+
+            let dim = ((right - left) as f32, (top - bottom) as f32);
 
             Ok(StreetNetworkSpec {
                 network: StreetNetwork(network),

@@ -1,7 +1,9 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-#[derive(Copy, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct StreetEdgeLabel {
     pub len: f32,
     pub id: u32,
