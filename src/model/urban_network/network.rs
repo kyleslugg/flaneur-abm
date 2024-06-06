@@ -23,24 +23,30 @@ struct EdgeDef<L: Clone + Hash + Display> {
     pub weight: Option<f32>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde_as]
-#[serde(remote = "krabmaga::engine::fields::network::Network")]
-struct NetworkDef<O: Hash + Eq + Clone + Display, L: Clone + Hash + Display> {
-    #[serde_as(as = "hashbrown::HashMap<DisplayFromStr, Vec<Edge<L>>>")]
+//#[derive(Serialize)]
+//#[serde_as]
+//#[serde(remote = "krabmaga::engine::fields::network::Network")]
+struct NetworkDef<
+    O: Hash + Eq + Clone + Display + Serialize + for<'a> Deserialize<'a>,
+    L: Clone + Hash + Display + Serialize + for<'a> Deserialize<'a>,
+> {
+    //#[serde_as(as = "hashbrown::HashMap<u32, Vec<Edge<L>>>")]
     pub edges: Vec<RefCell<HashMap<u32, Vec<Edge<L>>>>>,
     pub read: usize,
     pub write: usize,
-    #[serde(with = "krabmaga::hashbrown::HashMap")]
+    //#[serde(with = "krabmaga::hashbrown::HashMap")]
     pub nodes2id: Vec<RefCell<HashMap<O, u32>>>,
-    #[serde(with = "krabmaga::hashbrown::HashMap")]
+    //#[serde(with = "krabmaga::hashbrown::HashMap")]
     pub id2nodes: Vec<RefCell<HashMap<u32, O>>>,
     pub direct: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+//#[derive(Serialize, Deserialize)]
 
-pub struct StreetNetwork(#[serde(with = "NetworkDef")] pub Network<StreetNode, StreetEdgeLabel>);
+pub struct StreetNetwork(
+    //#[serde(with = "NetworkDef")]
+    pub Network<StreetNode, StreetEdgeLabel>,
+);
 
 // impl Serialize for StreetNetwork {
 //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
