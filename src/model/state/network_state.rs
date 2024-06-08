@@ -1,18 +1,20 @@
 use crate::model::agent::{AgentLoc, PedAgent};
 use crate::model::urban_network::node::StreetNode;
 use crate::model::urban_network::{
-    street_network_from_osm, StreetNetwork, StreetNetworkError, StreetNetworkSpec,
+    street_network_from_osm, StreetEdgeLabel, StreetNetwork, StreetNetworkError, StreetNetworkSpec,
 };
 use crate::INIT_EDGES;
 use krabmaga::engine::fields::field::Field;
-use krabmaga::engine::fields::network::Network;
+use krabmaga::engine::fields::network::{Edge, Network};
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::schedule::Schedule;
 use krabmaga::engine::state::State;
-use krabmaga::rand;
 use krabmaga::rand::{distributions::Uniform, prelude::SliceRandom, rngs::ThreadRng, Rng};
 use krabmaga::Distribution;
+use krabmaga::{__Deref, rand};
+use serde::de::value;
 use std::any::Any;
+use std::collections::HashMap;
 use std::path::Path;
 
 #[derive(Debug)]
@@ -110,14 +112,14 @@ impl State for UrbanNetworkState {
     fn reset(&mut self) {
         self.step = 0;
         //self.field1 = Field2D::new(self.dim.0, self.dim.1, self.discretization, self.toroidal);
-        self.network = StreetNetwork(Network::new(false));
+        //self.network = StreetNetwork(Network::new(false));
     }
 
     fn init(&mut self, schedule: &mut Schedule) {
         self.reset();
 
         let mut rng = ThreadRng::default();
-        // Initialize Agents -- put halfway down a random edge
+        // Initialize Agents -- put halfway down a random edge by first selecting a random
         // for agent_id in 0..self.num_agents {
         //     let init_loc = node_set.choose(rng).and_then(|u| {
         //         self.network.get_edges(*u).and_then(|edges| {
@@ -132,16 +134,65 @@ impl State for UrbanNetworkState {
         //         })
         //     });
 
-        let edge_list_ref = self.network.0.edges[0].borrow();
-        let edge_list = edge_list_ref
-            .values()
-            .next()
-            .expect("Network should have edges by this point");
+        //print!("{:?}", self.network.0.nodes2id);
+
+        let edge_list = self
+            .network
+            .0
+            .edges
+            .iter()
+            .map(|cell| {
+                cell.clone()
+                    .into_inner()
+                    .values()
+                    .map(|val| val.clone())
+                    .reduce(|acc, item| {
+                        let mut new = acc;
+                        new.extend(item.into_iter());
+                        new
+                    })
+            })
+            .reduce(|acc, item| {
+                let mut new = acc.unwrap_or_default();
+                let inner_item = item.unwrap_or_default();
+                new.extend(inner_item.into_iter());
+                Some(new)
+            })
+            .unwrap_or_default()
+            .unwrap_or_default();
+
+        println!("{:?}", edge_list);
+
+        // let node_list = self
+        //     .network
+        //     .0
+        //     .id2nodes
+        //     .iter()
+        //     .map(|item| {
+        //         item.clone()
+        //             .into_inner()
+        //             .values()
+        //             .map(|value| *value)
+        //             .collect::<Vec<StreetNode>>()
+        //     })
+        //     .reduce(|acc, item| {
+        //         let mut new = acc;
+        //         new.extend(item.iter());
+        //         new
+        //     })
+        //     .unwrap_or_default();
 
         for agent_id in 0..self.num_agents {
             let starting_edge = edge_list
                 .choose(&mut rng)
                 .expect("Network should have non-empty edge list.");
+
+            // print!("Selected node: {:?}", starting_node);
+            // let possible_edges = self.network.0.get_edges(*starting_node).unwrap_or_default();
+
+            // let starting_edge = possible_edges
+            //     .choose(&mut rng)
+            //     .expect("Any network node should have non-empty edge list.");
 
             let starting_edge_length = starting_edge
                 .label.map(|label| label.len)

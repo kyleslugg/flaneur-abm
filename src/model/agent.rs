@@ -67,12 +67,13 @@ impl PedAgent {
 
 impl Agent for PedAgent {
     fn step(&mut self, state: &mut dyn State) {
-        let state = state
-            .as_any_mut()
-            .downcast_mut::<UrbanNetworkState>()
-            .unwrap();
+        println!("Agent {} on step {}", self.id, "???");
+        // let state = state
+        //     .as_any_mut()
+        //     .downcast_mut::<UrbanNetworkState>()
+        //     .unwrap();
 
-        // Check and see if agent can/will move; if so, update location
-        self.update_network_loc(state);
+        // // Check and see if agent can/will move; if so, update location
+        // self.update_network_loc(state);
     }
 }

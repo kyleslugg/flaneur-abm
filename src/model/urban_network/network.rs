@@ -7,7 +7,10 @@ use std::hash::Hash;
 use std::path::Path;
 
 use indicatif::ProgressBar;
-use krabmaga::engine::fields::network::{Edge, EdgeOptions, Network};
+use krabmaga::engine::fields::{
+    field::Field,
+    network::{Edge, EdgeOptions, Network},
+};
 use osmpbf::HeaderBBox;
 use serde::{Deserialize, Serialize};
 
@@ -44,6 +47,12 @@ struct NetworkDef<
     pub direct: bool,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct StreetNetworkPosition {
+    pub from_node: u32,
+    pub to_node: u32,
+    pub edge_dist: f32,
+}
 //#[derive(Serialize, Deserialize)]
 
 pub struct StreetNetwork(
@@ -51,6 +60,11 @@ pub struct StreetNetwork(
     pub Network<StreetNode, StreetEdgeLabel>,
 );
 
+impl StreetNetwork {
+    fn get_random_edge_position(&self) -> Option<StreetNetworkPosition> {
+        unimplemented!("Eventually hope to use this in the state initialization routine, if re-running of edge list routine doesn't take too long");
+    }
+}
 // impl Serialize for StreetNetwork {
 //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 //     where
@@ -78,7 +92,7 @@ pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, Str
     match read_osm(filepath) {
         Ok(osm_spec) => {
             // Instantiate network
-            let network = Network::<StreetNode, StreetEdgeLabel>::new(true);
+            let mut network = Network::<StreetNode, StreetEdgeLabel>::new(true);
 
             // Generate StreetNodes from osm_spec's nodes
             println!("{}", "Processing OSM nodes as KBM nodes...");
@@ -95,6 +109,8 @@ pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, Str
             pb.wrap_iter(nodes.into_iter()).for_each(|n| {
                 network.add_node(n);
             });
+
+            //network.update();
 
             // Create map of OSM IDs to Node IDs
             // let osm_id_node_map = network
@@ -144,6 +160,7 @@ pub fn street_network_from_osm(filepath: &Path) -> Result<StreetNetworkSpec, Str
                 network.add_edge(e.u, e.v, e.options);
             });
 
+            network.lazy_update();
             // Calculate dimensions from bounding box
             let HeaderBBox {
                 left,
