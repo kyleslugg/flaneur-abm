@@ -1,7 +1,8 @@
-use crate::model::agent::{AgentLoc, PedAgent};
+use crate::model::agent::PedAgent;
 use crate::model::urban_network::node::StreetNode;
 use crate::model::urban_network::{
-    street_network_from_osm, StreetEdgeLabel, StreetNetwork, StreetNetworkError, StreetNetworkSpec,
+    street_network_from_osm, StreetEdgeLabel, StreetNetwork, StreetNetworkError,
+    StreetNetworkPosition, StreetNetworkSpec,
 };
 use crate::INIT_EDGES;
 use krabmaga::engine::fields::field::Field;
@@ -119,22 +120,8 @@ impl State for UrbanNetworkState {
         self.reset();
 
         let mut rng = ThreadRng::default();
-        // Initialize Agents -- put halfway down a random edge by first selecting a random
-        // for agent_id in 0..self.num_agents {
-        //     let init_loc = node_set.choose(rng).and_then(|u| {
-        //         self.network.get_edges(*u).and_then(|edges| {
-        //             edges.choose(rng).and_then(|edge| {
-        //                 let this_u = u.id;
-        //                 let this_v = if (edge.v == u.id) {
-        //                     edge.u } else {edge.v};
 
-        //                 let edge_dist = edge.label.expect("If you've gotten this far without providing an edge label, I don't know how to help you. Label should be of the type StreetEdgeLabel.").len;
-        //                 Some(AgentLoc::new(this_u, this_v, edge_dist/2.0))
-        //             })
-        //         })
-        //     });
-
-        //print!("{:?}", self.network.0.nodes2id);
+        // Initialize Agents -- put partway down a random edge by first selecting a random edge and then randomizing position as a fraction of length
 
         let edge_list = self
             .network
@@ -151,60 +138,18 @@ impl State for UrbanNetworkState {
                         new.extend(item.into_iter());
                         new
                     })
+                    .unwrap_or_default()
             })
             .reduce(|acc, item| {
-                let mut new = acc.unwrap_or_default();
-                let inner_item = item.unwrap_or_default();
-                new.extend(inner_item.into_iter());
-                Some(new)
+                let mut new = acc;
+                new.extend(item.into_iter());
+                new
             })
-            .unwrap_or_default()
             .unwrap_or_default();
 
-        println!("{:?}", edge_list);
-
-        // let node_list = self
-        //     .network
-        //     .0
-        //     .id2nodes
-        //     .iter()
-        //     .map(|item| {
-        //         item.clone()
-        //             .into_inner()
-        //             .values()
-        //             .map(|value| *value)
-        //             .collect::<Vec<StreetNode>>()
-        //     })
-        //     .reduce(|acc, item| {
-        //         let mut new = acc;
-        //         new.extend(item.iter());
-        //         new
-        //     })
-        //     .unwrap_or_default();
-
+        // Place agents at a random point on a random street segment
         for agent_id in 0..self.num_agents {
-            let starting_edge = edge_list
-                .choose(&mut rng)
-                .expect("Network should have non-empty edge list.");
-
-            // print!("Selected node: {:?}", starting_node);
-            // let possible_edges = self.network.0.get_edges(*starting_node).unwrap_or_default();
-
-            // let starting_edge = possible_edges
-            //     .choose(&mut rng)
-            //     .expect("Any network node should have non-empty edge list.");
-
-            let starting_edge_length = starting_edge
-                .label.map(|label| label.len)
-                .unwrap_or_else(|| panic!("Error occurred on edge ({} - {}): Edges must be defined with length value in label",
-                    starting_edge.u, starting_edge.v));
-
-            let uniform_range = Uniform::new_inclusive(0.0, 1.0);
-            let starting_loc = AgentLoc::new(
-                starting_edge.u,
-                starting_edge.v,
-                starting_edge_length * uniform_range.sample(&mut rng),
-            );
+            let starting_loc = StreetNetworkPosition::rand_from_edge_list(&edge_list, &mut rng);
 
             let agent = PedAgent::new(agent_id, starting_loc);
             print!("{:?}", &agent);

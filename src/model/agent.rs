@@ -1,31 +1,10 @@
+use crate::model::urban_network::StreetNetworkPosition;
 use krabmaga::engine::agent::Agent;
 use krabmaga::engine::state::State;
 use krabmaga::rand::rngs::ThreadRng;
 
 use crate::UrbanNetworkState;
 
-#[derive(Clone, Copy, Debug)]
-pub struct AgentLoc {
-    from_node: u32,
-    to_node: u32,
-    edge_dist: f32,
-}
-
-impl AgentLoc {
-    pub fn new(from_node: u32, to_node: u32, edge_dist: f32) -> Self {
-        AgentLoc {
-            from_node,
-            to_node,
-            edge_dist,
-        }
-    }
-}
-
-impl Default for AgentLoc {
-    fn default() -> Self {
-        AgentLoc::new(0, 0, 0.0)
-    }
-}
 // #[derive(Clone)]
 // pub struct AgentEncounter {
 //     id: u32,
@@ -35,13 +14,13 @@ impl Default for AgentLoc {
 #[derive(Clone, Debug)]
 pub struct PedAgent {
     pub id: u32,
-    pub loc: AgentLoc,
-    pub dest: Option<AgentLoc>, //pub status: AgentStatus,
-                                //pub encounters: Vec<AgentEncounter>,
+    pub loc: StreetNetworkPosition,
+    pub dest: Option<StreetNetworkPosition>, //pub status: AgentStatus,
+                                             //pub encounters: Vec<AgentEncounter>,
 }
 
 impl PedAgent {
-    pub fn new(id: u32, init_loc: AgentLoc) -> Self {
+    pub fn new(id: u32, init_loc: StreetNetworkPosition) -> Self {
         PedAgent {
             id,
             loc: init_loc,
@@ -55,7 +34,7 @@ impl PedAgent {
         let rng = ThreadRng::default();
 
         // Placeholder for next location
-        let next_loc = Some(AgentLoc::default());
+        let next_loc = Some(StreetNetworkPosition::default());
 
         // If agent has changed location, reassign to new location
         if let Some(loc) = next_loc {

@@ -1,5 +1,8 @@
+use krabmaga::rand::prelude::SliceRandom;
+use krabmaga::Distribution;
 use krabmaga::HashMap;
-use krabmaga::__Deref;
+use krabmaga::Rng;
+use krabmaga::Uniform;
 use serde_with::serde_as;
 use std::cell::RefCell;
 use std::fmt::Display;
@@ -52,6 +55,44 @@ pub struct StreetNetworkPosition {
     pub from_node: u32,
     pub to_node: u32,
     pub edge_dist: f32,
+}
+
+impl StreetNetworkPosition {
+    pub fn new(from_node: u32, to_node: u32, edge_dist: f32) -> Self {
+        StreetNetworkPosition {
+            from_node,
+            to_node,
+            edge_dist,
+        }
+    }
+
+    pub fn rand_from_edge_list(
+        edge_list: &Vec<Edge<StreetEdgeLabel>>,
+        mut rng: &mut impl Rng,
+    ) -> Self {
+        let starting_edge = &edge_list
+            .choose(rng)
+            .expect("Network should have non-empty edge list.");
+
+        let starting_edge_length = starting_edge
+                .label.map(|label| label.len)
+                .unwrap_or_else(|| panic!("Error occurred on edge ({} - {}): Edges must be defined with length value in label",
+                    starting_edge.u, starting_edge.v));
+
+        let uniform_range = Uniform::new_inclusive(0.0, 1.0);
+        let starting_loc = StreetNetworkPosition::new(
+            starting_edge.u,
+            starting_edge.v,
+            starting_edge_length * uniform_range.sample(&mut rng),
+        );
+        starting_loc
+    }
+}
+
+impl Default for StreetNetworkPosition {
+    fn default() -> Self {
+        StreetNetworkPosition::new(0, 0, 0.0)
+    }
 }
 //#[derive(Serialize, Deserialize)]
 
