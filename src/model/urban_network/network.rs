@@ -6,6 +6,8 @@ use krabmaga::Uniform;
 use serde_with::serde_as;
 use std::cell::RefCell;
 use std::fmt::Display;
+use std::fmt::Pointer;
+use std::fmt::Write;
 use std::hash::Hash;
 use std::path::Path;
 
@@ -50,7 +52,7 @@ struct NetworkDef<
     pub direct: bool,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct StreetNetworkPosition {
     pub from_node: u32,
     pub to_node: u32,
@@ -92,6 +94,24 @@ impl StreetNetworkPosition {
 impl Default for StreetNetworkPosition {
     fn default() -> Self {
         StreetNetworkPosition::new(0, 0, 0.0)
+    }
+}
+
+impl Hash for StreetNetworkPosition {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.from_node.hash(state);
+        self.to_node.hash(state);
+        //self.edge_dist.hash(state);
+    }
+}
+
+impl Display for StreetNetworkPosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rep = format!(
+            "to: {}, from: {}, edge_dist: {}",
+            self.from_node, self.to_node, self.edge_dist
+        );
+        f.write_str(rep.as_str())
     }
 }
 //#[derive(Serialize, Deserialize)]

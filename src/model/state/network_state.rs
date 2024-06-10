@@ -6,6 +6,7 @@ use crate::model::urban_network::{
 };
 use crate::INIT_EDGES;
 use krabmaga::engine::fields::field::Field;
+use krabmaga::engine::fields::field_2d::Field2D;
 use krabmaga::engine::fields::network::{Edge, Network};
 use krabmaga::engine::location::Real2D;
 use krabmaga::engine::schedule::Schedule;
@@ -96,6 +97,7 @@ impl UrbanNetworkState {
                 let StreetNetworkSpec { network, dim } = network_spec;
                 return Ok(UrbanNetworkState {
                     step: 0,
+                    //field: Field2D::new(dim.0, dim.1, discretization, toroidal),
                     network,
                     discretization,
                     toroidal,
@@ -159,7 +161,7 @@ impl State for UrbanNetworkState {
 
     fn update(&mut self, step: u64) {
         //self.field1.lazy_update();
-        self.network.0.update();
+        self.network.0.lazy_update();
         self.step = step;
     }
 

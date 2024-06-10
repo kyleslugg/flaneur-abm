@@ -1,6 +1,4 @@
 extern crate krabmaga;
-
-#[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
 
 use crate::model::state::network_state::UrbanNetworkState;

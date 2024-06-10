@@ -12,13 +12,15 @@ readme = "README.md"
 
 [dependencies]
 geo = "0.28.0"
+geojson = "0.24.1"
 indicatif = "0.17.8"
-krabmaga = "0.5.*"
+krabmaga = {version = "0.5.*", features = ["visualization", "visualization_wasm"]}
 osmpbf = "0.3.3"
+petgraph = { version = "0.6.5", features = ["generate", "serde", "serde_derive"] }
 serde = { version = "1.0.203", features = ["derive", "serde_derive"] }
 serde_json = "1.0.117"
 serde_with = { version = "3.8.1", features = ["hashbrown_0_14", "indexmap"] }
 
 [features]
-#visualization = ["krabmaga/visualization"]
-#visualization_wasm = ["krabmaga/visualization_wasm"]
+visualization = ["krabmaga/visualization"]
+visualization_wasm = ["krabmaga/visualization_wasm"]

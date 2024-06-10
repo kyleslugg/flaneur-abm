@@ -1,16 +1,20 @@
-use crate::model::node::NetNode;
-use crate::model::state::EpidemicNetworkState;
+use crate::model::state::network_state::UrbanNetworkState;
+use crate::model::urban_network::edge::StreetEdgeLabel;
+use crate::model::urban_network::node::StreetNode;
 use krabmaga::bevy::prelude::*;
 use krabmaga::engine::fields::network::{Edge, Network};
 use krabmaga::engine::location::Real2D;
 use krabmaga::visualization::fields::network::{EdgeRenderInfo, NetworkRender};
 
-impl NetworkRender<NetNode, String, EpidemicNetworkState> for EpidemicNetworkState {
-    fn get_network(state: &EpidemicNetworkState) -> &Network<NetNode, String> {
+impl NetworkRender<StreetNode, StreetEdgeLabel, UrbanNetworkState> for UrbanNetworkState {
+    fn get_network(state: &UrbanNetworkState) -> &Network<NetNode, String> {
         &state.network
     }
 
-    fn get_edge_info(edge: &Edge<String>, network: &Network<NetNode, String>) -> EdgeRenderInfo {
+    fn get_edge_info(
+        edge: &Edge<StreetEdgeLabel>,
+        network: &Network<StreetNode, StreetEdgeLabel>,
+    ) -> EdgeRenderInfo {
         EdgeRenderInfo {
             line_color: Color::BLACK,
             line_width: 1.,
@@ -20,7 +24,7 @@ impl NetworkRender<NetNode, String, EpidemicNetworkState> for EpidemicNetworkSta
         }
     }
 
-    fn get_loc(network: &Network<NetNode, String>, node: u32) -> Real2D {
+    fn get_loc(network: &Network<StreetNode, StreetEdgeLabel>, node: u32) -> Real2D {
         network.get_object(node).unwrap().loc
     }
 }
